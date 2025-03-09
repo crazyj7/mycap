@@ -1,0 +1,101 @@
+<Window x:Class="MyCap.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MyCap"
+        mc:Ignorable="d"
+        Title="MyCap - Screen Capture Tool" Height="450" Width="800"
+        WindowStartupLocation="CenterScreen">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Menu Bar -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New Capture" InputGestureText="Ctrl+N" Click="NewCaptureMenuItem_Click"/>
+                <Separator/>
+                <MenuItem Header="_Save" InputGestureText="Ctrl+S" Click="SaveMenuItem_Click"/>
+                <MenuItem Header="Save _As..." InputGestureText="Ctrl+Shift+S" Click="SaveAsMenuItem_Click"/>
+                <Separator/>
+                <MenuItem Header="_Exit" InputGestureText="Alt+F4" Click="ExitMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Copy" Name="CopyMenuItem" Click="CopyMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Preview" Name="PreviewMenuItem" Click="PreviewMenuItem_Click"/>
+                <MenuItem Header="_History" Click="HistoryMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Settings">
+                <MenuItem Header="_Hotkeys" Click="HotkeysMenuItem_Click"/>
+                <MenuItem Header="_Save Location" Click="SaveLocationMenuItem_Click"/>
+                <MenuItem Header="_Auto Save" Name="AutoSaveMenuItem" IsCheckable="True" IsChecked="True" Click="AutoSaveMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Click="AboutMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Capture Preview Area -->
+            <Border Grid.Column="0" 
+                    BorderBrush="Gray" 
+                    BorderThickness="1" 
+                    Margin="0,0,10,0">
+                <Grid>
+                    <TextBlock Text="Preview Area" 
+                             HorizontalAlignment="Center" 
+                             VerticalAlignment="Center"/>
+                    <Image x:Name="PreviewImage" 
+                           Stretch="Uniform"/>
+                </Grid>
+            </Border>
+
+            <!-- Capture Controls -->
+            <StackPanel Grid.Column="1" 
+                        Width="150" 
+                        VerticalAlignment="Top">
+                <Button x:Name="RegionSelectButton"
+                        Content="Region Select" 
+                        Height="40" 
+                        Margin="0,0,0,10"/>
+                <Button x:Name="FullScreenButton"
+                        Content="Full Screen" 
+                        Height="40" 
+                        Margin="0,0,0,10"/>
+                <Button x:Name="WindowCaptureButton"
+                        Content="Window Capture" 
+                        Height="40" 
+                        Margin="0,0,0,10"/>
+                <Separator Margin="0,0,0,10"/>
+                <Button x:Name="SaveAsButton"
+                        Content="Save As" 
+                        Height="40" 
+                        Margin="0,0,0,10"/>
+                <Button x:Name="CopyButton"
+                        Content="Copy to Clipboard" 
+                        Height="40" 
+                        Margin="0,0,0,10"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="2">
+            <StatusBarItem>
+                <TextBlock x:Name="ImageSizeTextBlock" Text="No image captured" Margin="5,2"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window> 
