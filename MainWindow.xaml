@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:MyCap"
         mc:Ignorable="d"
         Title="MyCap - Screen Capture Tool" Height="450" Width="800"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Icon="Resources/mycap.ico">
     
     <Grid>
         <Grid.RowDefinitions>
@@ -18,12 +19,14 @@
         <!-- Top Menu Bar -->
         <Menu Grid.Row="0">
             <MenuItem Header="_File">
-                <MenuItem Header="_New Capture" InputGestureText="Ctrl+N" Click="NewCaptureMenuItem_Click"/>
+                <MenuItem Header="_New Capture" Click="NewCaptureMenuItem_Click"/>
                 <Separator/>
-                <MenuItem Header="_Save" InputGestureText="Ctrl+S" Click="SaveMenuItem_Click"/>
-                <MenuItem Header="Save _As..." InputGestureText="Ctrl+Shift+S" Click="SaveAsMenuItem_Click"/>
+                <MenuItem Header="_Save" Click="SaveMenuItem_Click"/>
+                <MenuItem Header="Save _As..." Click="SaveAsMenuItem_Click"/>
                 <Separator/>
-                <MenuItem Header="_Exit" InputGestureText="Alt+F4" Click="ExitMenuItem_Click"/>
+                <MenuItem Header="_Minimize to Tray" Click="MinimizeToTrayMenuItem_Click"/>
+                <Separator/>
+                <MenuItem Header="_Exit" Click="ExitMenuItem_Click"/>
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="_Copy" Name="CopyMenuItem" Click="CopyMenuItem_Click"/>
@@ -32,11 +35,7 @@
                 <MenuItem Header="_Preview" Name="PreviewMenuItem" Click="PreviewMenuItem_Click"/>
                 <MenuItem Header="_History" Click="HistoryMenuItem_Click"/>
             </MenuItem>
-            <MenuItem Header="_Settings">
-                <MenuItem Header="_Hotkeys" Click="HotkeysMenuItem_Click"/>
-                <MenuItem Header="_Save Location" Click="SaveLocationMenuItem_Click"/>
-                <MenuItem Header="_Auto Save" Name="AutoSaveMenuItem" IsCheckable="True" IsChecked="True" Click="AutoSaveMenuItem_Click"/>
-            </MenuItem>
+            <MenuItem Header="_Settings" Click="HotkeysMenuItem_Click"/>
             <MenuItem Header="_Help">
                 <MenuItem Header="_About" Click="AboutMenuItem_Click"/>
             </MenuItem>
@@ -88,6 +87,12 @@
                         Content="Copy to Clipboard" 
                         Height="40" 
                         Margin="0,0,0,10"/>
+                <Separator Margin="0,0,0,10"/>
+                <Button x:Name="OpenSavedFolderButton"
+                        Content="Open saved folder" 
+                        Height="40" 
+                        Margin="0,0,0,10"
+                        Click="OpenSavedFolderButton_Click"/>
             </StackPanel>
         </Grid>
 

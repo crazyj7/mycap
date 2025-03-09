@@ -16,10 +16,18 @@
                   Margin="10">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Date" Width="150"/>
-                    <GridViewColumn Header="File Name" Width="300"/>
-                    <GridViewColumn Header="Size" Width="100"/>
-                    <GridViewColumn Header="Type" Width="100"/>
+                    <GridViewColumn Header="날짜" 
+                                  DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                                  Width="150"/>
+                    <GridViewColumn Header="파일명" 
+                                  DisplayMemberBinding="{Binding FileName}"
+                                  Width="300"/>
+                    <GridViewColumn Header="크기" 
+                                  DisplayMemberBinding="{Binding Size}"
+                                  Width="100"/>
+                    <GridViewColumn Header="형식" 
+                                  DisplayMemberBinding="{Binding Type}"
+                                  Width="100"/>
                 </GridView>
             </ListView.View>
         </ListView>
@@ -28,11 +36,11 @@
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right" 
                     Margin="10">
-            <Button Content="Open" 
+            <Button Content="열기" 
                     Width="80" 
                     Margin="0,0,10,0" 
                     Click="OpenButton_Click"/>
-            <Button Content="Close" 
+            <Button Content="닫기" 
                     Width="80" 
                     Click="CloseButton_Click"/>
         </StackPanel>
