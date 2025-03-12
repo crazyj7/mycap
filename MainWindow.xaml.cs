@@ -516,6 +516,7 @@ namespace MyCap
         {
             currentCapture = capture;
             UpdateImageSizeInfo(currentCapture);
+            System.Windows.Clipboard.SetImage(currentCapture);
 
             if (settingsService.Settings.AutoSave)
             {
