@@ -28,6 +28,8 @@ namespace MyCap.Windows
             { "ExitApplication", "프로그램 종료" },
             { "OpenSaveFolder", "저장폴더 열기" }
         };
+        private const string StartupRegistryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+        private const string AppName = "MyCap";
 
         public SettingsWindow(SettingsService settingsService)
         {
@@ -45,6 +47,17 @@ namespace MyCap.Windows
             HotkeysList.ItemsSource = _hotkeyItems;
             SaveLocationTextBox.Text = _settingsService.Settings.SaveDirectory;
             QuietModeCheckBox.IsChecked = _settingsService.Settings.QuietMode;
+            AutoStartCheckBox.IsChecked = _settingsService.Settings.AutoStart;
+
+            // 현재 자동 실행 상태 확인
+            using (var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey))
+            {
+                if (key != null)
+                {
+                    var value = key.GetValue(AppName);
+                    AutoStartCheckBox.IsChecked = value != null;
+                }
+            }
         }
 
         private void BrowseFolderButton_Click(object sender, RoutedEventArgs e)
@@ -109,6 +122,35 @@ namespace MyCap.Windows
             textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
         }
 
+        private void UpdateAutoStart(bool enable)
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, true))
+                {
+                    if (key == null)
+                    {
+                        MessageBox.Show("레지스트리 키에 접근할 수 없습니다.", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    if (enable)
+                    {
+                        string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                        key.SetValue(AppName, exePath);
+                    }
+                    else
+                    {
+                        key.DeleteValue(AppName, false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"자동 실행 설정 중 오류가 발생했습니다: {ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void ResetAllButton_Click(object sender, RoutedEventArgs e)
         {
             if (MessageBox.Show(
@@ -133,6 +175,8 @@ namespace MyCap.Windows
                 // 저장 경로를 기본값으로 재설정
                 SaveLocationTextBox.Text = tempSettings.SaveDirectory;
                 QuietModeCheckBox.IsChecked = tempSettings.QuietMode;
+                AutoStartCheckBox.IsChecked = tempSettings.AutoStart;
+                UpdateAutoStart(tempSettings.AutoStart);
             }
         }
 
@@ -146,9 +190,13 @@ namespace MyCap.Windows
                     _settingsService.Settings.Shortcuts[item.CommandName] = item.Shortcut;
                 }
 
-                // Update save location
+                // Update save location and other settings
                 _settingsService.Settings.SaveDirectory = SaveLocationTextBox.Text;
                 _settingsService.Settings.QuietMode = QuietModeCheckBox.IsChecked ?? false;
+                _settingsService.Settings.AutoStart = AutoStartCheckBox.IsChecked ?? true;
+
+                // Update auto start registry
+                UpdateAutoStart(AutoStartCheckBox.IsChecked ?? true);
 
                 _settingsService.SaveSettings();
                 DialogResult = true;

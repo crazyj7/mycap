@@ -14,6 +14,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -30,13 +32,16 @@
             <Button Grid.Column="1" Content="찾아보기" Width="75" Click="BrowseFolderButton_Click"/>
         </Grid>
 
+        <!-- 자동 실행 설정 -->
+        <CheckBox Grid.Row="2" x:Name="AutoStartCheckBox" Content="Windows 시작 시 자동 실행" Margin="0,0,0,10"/>
+
         <!-- 조용한 모드 설정 -->
-        <CheckBox Grid.Row="2" x:Name="QuietModeCheckBox" Content="조용한 모드 (캡쳐 시 메인 UI를 표시하지 않음)" Margin="0,0,0,20"/>
+        <CheckBox Grid.Row="3" x:Name="QuietModeCheckBox" Content="조용한 모드 (캡쳐 시 메인 UI를 표시하지 않음)" Margin="0,0,0,20"/>
 
         <!-- 단축키 설정 -->
-        <TextBlock Grid.Row="3" Text="단축키 설정" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="4" Text="단축키 설정" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="HotkeysList">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -64,7 +69,7 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="전체 초기화" Width="90" Click="ResetAllButton_Click" Margin="0,0,5,0"/>
             <Button Content="저장" Width="75" Click="OkButton_Click" Margin="0,0,5,0"/>
             <Button Content="취소" Width="75" Click="CancelButton_Click"/>

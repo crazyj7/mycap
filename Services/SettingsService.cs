@@ -11,6 +11,7 @@ namespace MyCap.Services
             "MyCap");
 
         public bool AutoSave { get; set; } = true;
+        public bool AutoStart { get; set; } = true;
         public string DefaultFormat { get; set; } = "png";
         public bool QuietMode { get; set; } = false;
         
@@ -35,6 +36,7 @@ namespace MyCap.Services
                 Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                 "MyCap");
             AutoSave = true;
+            AutoStart = true;
             DefaultFormat = "png";
             QuietMode = false;
             Shortcuts = new Dictionary<string, KeyboardShortcut>
