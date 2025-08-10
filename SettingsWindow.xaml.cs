@@ -130,8 +130,19 @@ namespace MyCap.Windows
             hotkeyItem.Shortcut = newShortcut;
             hotkeyItem.UpdateShortcutText();
             
-            // 즉시 설정에 반영
+            // 즉시 설정에 반영하고 파일에 저장
             _settingsService.Settings.Shortcuts[shortcutName] = newShortcut;
+            try
+            {
+                _settingsService.SaveSettings();
+                System.Diagnostics.Debug.WriteLine($"Shortcut {shortcutName} saved to settings file: {newShortcut}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving shortcut to settings file: {ex.Message}");
+                MessageBox.Show($"단축키 설정을 저장하는 중 오류가 발생했습니다: {ex.Message}", 
+                              "저장 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
             // 단축키 입력이 완료되면 다음 컨트롤로 포커스 이동
             textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));

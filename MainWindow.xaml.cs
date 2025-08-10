@@ -104,6 +104,9 @@ namespace MyCap
         // 동일 영역 캡처를 위한 저장된 영역 좌표 (설정에서 로드됨)
         private System.Drawing.Rectangle? savedRegion;
         
+        // 마지막 캡쳐 영역 정보 (플래시 효과용)
+        private System.Drawing.Rectangle? lastCaptureRegion;
+        
         // NotifyIcon for system tray functionality
         private NotifyIcon? notifyIcon;
 
@@ -532,46 +535,92 @@ namespace MyCap
         {
             try
             {
-                // Create a full-screen white window for flash effect
-                var flashWindow = new Window
+                // 캡쳐 영역이 있으면 해당 영역만, 없으면 전체 화면을 깜빡임
+                if (lastCaptureRegion.HasValue)
                 {
-                    WindowStyle = WindowStyle.None,
-                    AllowsTransparency = true,
-                    Background = System.Windows.Media.Brushes.White,
-                    Topmost = true,
-                    ShowInTaskbar = false,
-                    ResizeMode = ResizeMode.NoResize,
-                    WindowState = WindowState.Maximized,
-                    Left = 0,
-                    Top = 0,
-                    Width = SystemParameters.VirtualScreenWidth,
-                    Height = SystemParameters.VirtualScreenHeight
-                };
+                    // Create a region-specific white window for flash effect
+                    var flashWindow = new Window
+                    {
+                        WindowStyle = WindowStyle.None,
+                        AllowsTransparency = true,
+                        Background = System.Windows.Media.Brushes.White,
+                        Topmost = true,
+                        ShowInTaskbar = false,
+                        ResizeMode = ResizeMode.NoResize,
+                        Left = lastCaptureRegion.Value.X,
+                        Top = lastCaptureRegion.Value.Y,
+                        Width = lastCaptureRegion.Value.Width,
+                        Height = lastCaptureRegion.Value.Height
+                    };
 
-                // Show the flash window
-                flashWindow.Show();
-                
-                // Schedule to close the flash window after a short delay
-                var timer = new System.Windows.Threading.DispatcherTimer
+                    System.Diagnostics.Debug.WriteLine($"Flashing capture region: {lastCaptureRegion.Value}");
+                    flashWindow.Show();
+                    
+                    // Schedule to close the flash window after a short delay
+                    var timer = new System.Windows.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(150) // 150ms white flash
+                    };
+                    timer.Tick += (s, e) =>
+                    {
+                        try
+                        {
+                            flashWindow.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error closing flash window: {ex.Message}");
+                        }
+                        finally
+                        {
+                            timer.Stop();
+                        }
+                    };
+                    timer.Start();
+                }
+                else
                 {
-                    Interval = TimeSpan.FromMilliseconds(150) // 150ms white flash
-                };
-                timer.Tick += (s, e) =>
-                {
-                    try
+                    // Fallback to full-screen flash if no region is available
+                    var flashWindow = new Window
                     {
-                        flashWindow.Close();
-                    }
-                    catch (Exception ex)
+                        WindowStyle = WindowStyle.None,
+                        AllowsTransparency = true,
+                        Background = System.Windows.Media.Brushes.White,
+                        Topmost = true,
+                        ShowInTaskbar = false,
+                        ResizeMode = ResizeMode.NoResize,
+                        WindowState = WindowState.Maximized,
+                        Left = 0,
+                        Top = 0,
+                        Width = SystemParameters.VirtualScreenWidth,
+                        Height = SystemParameters.VirtualScreenHeight
+                    };
+
+                    System.Diagnostics.Debug.WriteLine("Flashing full screen (no region available)");
+                    flashWindow.Show();
+                    
+                    // Schedule to close the flash window after a short delay
+                    var timer = new System.Windows.Threading.DispatcherTimer
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error closing flash window: {ex.Message}");
-                    }
-                    finally
+                        Interval = TimeSpan.FromMilliseconds(150) // 150ms white flash
+                    };
+                    timer.Tick += (s, e) =>
                     {
-                        timer.Stop();
-                    }
-                };
-                timer.Start();
+                        try
+                        {
+                            flashWindow.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error closing flash window: {ex.Message}");
+                        }
+                        finally
+                        {
+                            timer.Stop();
+                        }
+                    };
+                    timer.Start();
+                }
                 
                 System.Diagnostics.Debug.WriteLine("White screen flash effect triggered");
             }
@@ -656,7 +705,7 @@ namespace MyCap
 
             if (settingsService.Settings.AutoSave)
             {
-                var fileName = $"Screenshot_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.{settingsService.Settings.DefaultFormat}";
+                var fileName = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.{settingsService.Settings.DefaultFormat}";
                 lastSavePath = Path.Combine(settingsService.Settings.SaveDirectory, fileName);
                 SaveCapture(lastSavePath);
 
@@ -727,6 +776,9 @@ namespace MyCap
                 this.Hide();
                 System.Threading.Thread.Sleep(300); // Give more time for the window to hide
 
+                // Set full screen region for flash effect
+                lastCaptureRegion = new System.Drawing.Rectangle(0, 0, (int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight);
+
                 // Capture full screen
                 var capture = captureService.CaptureFullScreen();
                 if (capture != null)
@@ -772,6 +824,7 @@ namespace MyCap
                 regionWindow.RegionCoordinatesSelected += (s, rect) =>
                 {
                     savedRegion = rect;
+                    lastCaptureRegion = rect; // Set capture region for flash effect
                     SaveRegionToSettings(rect);
                 };
                 regionWindow.Closed += (s, e) =>
@@ -816,6 +869,10 @@ namespace MyCap
                         HandleNewCapture(capture, isHotkeyTriggered);
                     }
                 };
+                windowSelectWindow.WindowBoundsSelected += (s, bounds) =>
+                {
+                    lastCaptureRegion = bounds; // Set capture region for flash effect
+                };
                 windowSelectWindow.Closed += (s, e) =>
                 {
                     if (!isHotkeyTriggered || !settingsService.Settings.QuietMode)
@@ -855,6 +912,9 @@ namespace MyCap
 
                 this.Hide();
                 System.Threading.Thread.Sleep(100);
+
+                // Set the saved region for flash effect
+                lastCaptureRegion = savedRegion.Value;
 
                 var capture = captureService.CaptureRegion(savedRegion.Value);
                 if (capture != null)

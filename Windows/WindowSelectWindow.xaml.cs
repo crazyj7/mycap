@@ -50,6 +50,7 @@ namespace MyCap.Windows
         private const int SW_SHOW = 5;
 
         public event EventHandler<BitmapSource>? WindowSelected;
+        public event EventHandler<System.Drawing.Rectangle>? WindowBoundsSelected;
 
         public WindowSelectWindow()
         {
@@ -111,6 +112,7 @@ namespace MyCap.Windows
                     var window = new WindowInfo(selectedWindowHandle);
                     var capture = captureService.CaptureRegion(window.Bounds);
                     WindowSelected?.Invoke(this, capture);
+                    WindowBoundsSelected?.Invoke(this, window.Bounds);
                 }
                 catch (Exception ex)
                 {
