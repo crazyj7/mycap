@@ -20,6 +20,7 @@ namespace MyCap.Windows
         private System.Windows.Controls.Image? previewImage;
 
         public event EventHandler<BitmapSource>? RegionSelected;
+        public event EventHandler<System.Drawing.Rectangle>? RegionCoordinatesSelected;
 
         public RegionSelectWindow()
         {
@@ -187,6 +188,7 @@ namespace MyCap.Windows
 
                 var capture = captureService.CaptureRegion(rect);
                 RegionSelected?.Invoke(this, capture);
+                RegionCoordinatesSelected?.Invoke(this, rect);
                 Close();
             }
             catch (Exception ex)

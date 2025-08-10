@@ -26,6 +26,64 @@ namespace MyCap
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+        // Win32 API for screen flash effect
+        [DllImport("user32.dll")]
+        private static extern bool FlashWindow(IntPtr hWnd, bool bInvert);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDesktopWindow();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool InvalidateRect(IntPtr hWnd, IntPtr lpRect, bool bErase);
+
+        [DllImport("user32.dll")]
+        private static extern bool UpdateWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        private static extern IntPtr CreateSolidBrush(uint crColor);
+
+        [DllImport("gdi32.dll")]
+        private static extern bool DeleteObject(IntPtr hObject);
+
+        [DllImport("user32.dll")]
+        private static extern bool FillRect(IntPtr hDC, ref RECT lprc, IntPtr hbr);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindowDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseWindowDC(IntPtr hWnd, IntPtr hDC);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         // Modifier keys
         private const uint MOD_ALT = 0x0001;
         private const uint MOD_CONTROL = 0x0002;
@@ -42,6 +100,9 @@ namespace MyCap
         private readonly ScreenCaptureService captureService;
         private readonly ImageSaveService saveService;
         private readonly SettingsService settingsService;
+        
+        // 동일 영역 캡처를 위한 저장된 영역 좌표 (설정에서 로드됨)
+        private System.Drawing.Rectangle? savedRegion;
         
         // NotifyIcon for system tray functionality
         private NotifyIcon? notifyIcon;
@@ -91,13 +152,14 @@ namespace MyCap
                 if (saveAsButton != null) saveAsButton.Click += (s, e) => ExecuteSaveAs(s, null);
                 if (copyButton != null) copyButton.Click += (s, e) => ExecuteCopy(s, null);
 
+                // 저장된 영역 로드
+                LoadSavedRegion();
+
                 // Initialize AutoSave menu item
                 var autoSaveMenuItem = FindName("AutoSaveMenuItem") as System.Windows.Controls.MenuItem;
                 if (autoSaveMenuItem != null && settingsService != null)
                 {
                     autoSaveMenuItem.IsChecked = settingsService.Settings.AutoSave;
-                    settingsService.Settings.AutoSave = true; // Set default to true
-                    settingsService.SaveSettings();
                 }
 
                 // Initialize system tray icon
@@ -156,9 +218,12 @@ namespace MyCap
                                         case "WindowCapture":
                                             CaptureWindow(true);
                                             break;
-                                        case "OpenSaveFolder":
-                                            OpenSavedFolderButton_Click(null, null);
-                                            break;
+                                                        case "OpenSaveFolder":
+                    OpenSavedFolderButton_Click(null, null);
+                    break;
+                case "SameRegionCapture":
+                    CaptureSameRegion(true);
+                    break;
                                     }
                                 }
                                 catch (Exception ex)
@@ -282,8 +347,9 @@ namespace MyCap
                         
                         if (settingsService.Settings.Shortcuts.TryGetValue(name, out var shortcut))
                         {
+                            System.Diagnostics.Debug.WriteLine($"Setting up shortcut for {name}: {shortcut}");
                             // 글로벌 단축키인 경우 Win32 API를 사용하여 등록
-                            if (name is "RegionSelect" or "FullScreen" or "WindowCapture")
+                            if (name is "RegionSelect" or "FullScreen" or "WindowCapture" or "SameRegionCapture")
                             {
                                 RegisterGlobalHotkey(name, shortcut);
                             }
@@ -310,6 +376,7 @@ namespace MyCap
                 SetupShortcut("RegionSelect", () => CaptureRegion(true));
                 SetupShortcut("FullScreen", () => CaptureFullScreen(true));
                 SetupShortcut("WindowCapture", () => CaptureWindow(true));
+                SetupShortcut("SameRegionCapture", () => CaptureSameRegion(true));
 
                 // SaveAs 명령 설정
                 var saveAsCommand = new RoutedCommand("SaveAs", typeof(MainWindow));
@@ -445,6 +512,75 @@ namespace MyCap
             Activate();
         }
         
+        private void EnsureTrayIconVisible()
+        {
+            if (notifyIcon != null)
+            {
+                try
+                {
+                    // Ensure the tray icon is visible
+                    notifyIcon.Visible = true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error showing tray icon: {ex.Message}");
+                }
+            }
+        }
+
+        private void FlashScreen()
+        {
+            try
+            {
+                // Create a full-screen white window for flash effect
+                var flashWindow = new Window
+                {
+                    WindowStyle = WindowStyle.None,
+                    AllowsTransparency = true,
+                    Background = System.Windows.Media.Brushes.White,
+                    Topmost = true,
+                    ShowInTaskbar = false,
+                    ResizeMode = ResizeMode.NoResize,
+                    WindowState = WindowState.Maximized,
+                    Left = 0,
+                    Top = 0,
+                    Width = SystemParameters.VirtualScreenWidth,
+                    Height = SystemParameters.VirtualScreenHeight
+                };
+
+                // Show the flash window
+                flashWindow.Show();
+                
+                // Schedule to close the flash window after a short delay
+                var timer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(150) // 150ms white flash
+                };
+                timer.Tick += (s, e) =>
+                {
+                    try
+                    {
+                        flashWindow.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error closing flash window: {ex.Message}");
+                    }
+                    finally
+                    {
+                        timer.Stop();
+                    }
+                };
+                timer.Start();
+                
+                System.Diagnostics.Debug.WriteLine("White screen flash effect triggered");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error flashing screen: {ex.Message}");
+            }
+        }
+        
         private void CloseApplication()
         {
             // 컨텍스트 메뉴에서 명시적 종료. 
@@ -533,6 +669,12 @@ namespace MyCap
                         PreviewImage.Source = currentCapture;
                     }
                 }
+                else
+                {
+                    // In Quiet Mode, ensure tray icon is visible and flash screen to confirm capture
+                    EnsureTrayIconVisible();
+                    FlashScreen();
+                }
             }
             else if (!isHotkeyTriggered || !settingsService.Settings.QuietMode)
             {
@@ -542,6 +684,12 @@ namespace MyCap
                 {
                     PreviewImage.Source = currentCapture;
                 }
+            }
+            else
+            {
+                // In Quiet Mode, ensure tray icon is visible and flash screen to confirm capture
+                EnsureTrayIconVisible();
+                FlashScreen();
             }
         }
 
@@ -621,6 +769,11 @@ namespace MyCap
                         HandleNewCapture(capture, isHotkeyTriggered);
                     }
                 };
+                regionWindow.RegionCoordinatesSelected += (s, rect) =>
+                {
+                    savedRegion = rect;
+                    SaveRegionToSettings(rect);
+                };
                 regionWindow.Closed += (s, e) =>
                 {
                     if (!isHotkeyTriggered || !settingsService.Settings.QuietMode)
@@ -686,6 +839,69 @@ namespace MyCap
                     this.Show();
                     this.Activate();
                 }
+            }
+        }
+
+        private void CaptureSameRegion(bool isHotkeyTriggered = false)
+        {
+            try
+            {
+                if (!savedRegion.HasValue)
+                {
+                    MessageBox.Show("저장된 영역이 없습니다. 먼저 영역 캡처를 수행하여 영역을 설정해주세요.", 
+                                   "동일 영역 캡처", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                this.Hide();
+                System.Threading.Thread.Sleep(100);
+
+                var capture = captureService.CaptureRegion(savedRegion.Value);
+                if (capture != null)
+                {
+                    HandleNewCapture(capture, isHotkeyTriggered);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"동일 영역 캡처 중 오류가 발생했습니다: {ex.Message}", "캡처 오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (!isHotkeyTriggered || !settingsService.Settings.QuietMode)
+                {
+                    this.Show();
+                }
+            }
+        }
+
+        private void LoadSavedRegion()
+        {
+            try
+            {
+                savedRegion = settingsService.Settings.GetSavedRegion();
+                if (savedRegion.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"저장된 영역 로드됨: {savedRegion.Value}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"저장된 영역 로드 중 오류: {ex.Message}");
+            }
+        }
+
+        private void SaveRegionToSettings(System.Drawing.Rectangle region)
+        {
+            try
+            {
+                settingsService.Settings.SetSavedRegion(region);
+                settingsService.SaveSettings();
+                System.Diagnostics.Debug.WriteLine($"영역 저장됨: {region}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"영역 저장 중 오류: {ex.Message}");
             }
         }
 
@@ -783,7 +999,7 @@ namespace MyCap
         {
             foreach (var shortcut in settingsService.Settings.Shortcuts)
             {
-                if (shortcut.Key is "RegionSelect" or "FullScreen" or "WindowCapture" or "OpenSaveFolder")
+                if (shortcut.Key is "RegionSelect" or "FullScreen" or "WindowCapture" or "SameRegionCapture" or "OpenSaveFolder")
                 {
                     RegisterGlobalHotkey(shortcut.Key, shortcut.Value);
                 }

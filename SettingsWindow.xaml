@@ -16,6 +16,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -36,12 +37,26 @@
         <CheckBox Grid.Row="2" x:Name="AutoStartCheckBox" Content="Windows 시작 시 자동 실행" Margin="0,0,0,10"/>
 
         <!-- 조용한 모드 설정 -->
-        <CheckBox Grid.Row="3" x:Name="QuietModeCheckBox" Content="조용한 모드 (캡쳐 시 메인 UI를 표시하지 않음)" Margin="0,0,0,20"/>
+        <CheckBox Grid.Row="3" x:Name="QuietModeCheckBox" Content="조용한 모드 (캡쳐 시 메인 UI를 표시하지 않음)" Margin="0,0,0,10"/>
+
+        <!-- 영역 설정 -->
+        <Grid Grid.Row="4" Margin="0,0,0,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="영역 설정" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left">
+                <TextBlock Text="저장된 영역:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="SavedRegionText" Text="없음" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Content="영역 초기화" Width="90" Click="ClearSavedRegionButton_Click"/>
+            </StackPanel>
+        </Grid>
 
         <!-- 단축키 설정 -->
-        <TextBlock Grid.Row="4" Text="단축키 설정" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="5" Text="단축키 설정" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="HotkeysList">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -69,7 +84,7 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="전체 초기화" Width="90" Click="ResetAllButton_Click" Margin="0,0,5,0"/>
             <Button Content="저장" Width="75" Click="OkButton_Click" Margin="0,0,5,0"/>
             <Button Content="취소" Width="75" Click="CancelButton_Click"/>

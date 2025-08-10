@@ -15,12 +15,19 @@ namespace MyCap.Services
         public string DefaultFormat { get; set; } = "png";
         public bool QuietMode { get; set; } = false;
         
+        // 저장된 영역 좌표
+        public int? SavedRegionX { get; set; } = null;
+        public int? SavedRegionY { get; set; } = null;
+        public int? SavedRegionWidth { get; set; } = null;
+        public int? SavedRegionHeight { get; set; } = null;
+        
         // 모든 단축키 설정
         public Dictionary<string, KeyboardShortcut> Shortcuts { get; set; } = new()
         {
             { "FullScreen", new KeyboardShortcut { Key = Key.F2, Modifiers = ModifierKeys.Control } },
             { "RegionSelect", new KeyboardShortcut { Key = Key.F1, Modifiers = ModifierKeys.Control } },
             { "WindowCapture", new KeyboardShortcut { Key = Key.F3, Modifiers = ModifierKeys.Control } },
+            { "SameRegionCapture", new KeyboardShortcut { Key = Key.F8, Modifiers = ModifierKeys.Control } },
             { "SaveAs", new KeyboardShortcut { Key = Key.S, Modifiers = ModifierKeys.Control | ModifierKeys.Shift } },
             { "Copy", new KeyboardShortcut { Key = Key.C, Modifiers = ModifierKeys.Control } },
             { "About", new KeyboardShortcut { Key = Key.F1, Modifiers = ModifierKeys.None } },
@@ -39,11 +46,18 @@ namespace MyCap.Services
             AutoStart = true;
             DefaultFormat = "png";
             QuietMode = false;
+            
+            // 저장된 영역 좌표 초기화
+            SavedRegionX = null;
+            SavedRegionY = null;
+            SavedRegionWidth = null;
+            SavedRegionHeight = null;
             Shortcuts = new Dictionary<string, KeyboardShortcut>
             {
                 { "FullScreen", new KeyboardShortcut { Key = Key.F2, Modifiers = ModifierKeys.Control } },
                 { "RegionSelect", new KeyboardShortcut { Key = Key.F1, Modifiers = ModifierKeys.Control } },
                 { "WindowCapture", new KeyboardShortcut { Key = Key.F3, Modifiers = ModifierKeys.Control } },
+                { "SameRegionCapture", new KeyboardShortcut { Key = Key.F8, Modifiers = ModifierKeys.Control } },
                 { "SaveAs", new KeyboardShortcut { Key = Key.S, Modifiers = ModifierKeys.Control | ModifierKeys.Shift } },
                 { "Copy", new KeyboardShortcut { Key = Key.C, Modifiers = ModifierKeys.Control } },
                 { "About", new KeyboardShortcut { Key = Key.F1, Modifiers = ModifierKeys.None } },
@@ -51,6 +65,39 @@ namespace MyCap.Services
                 { "ExitApplication", new KeyboardShortcut { Key = Key.X, Modifiers = ModifierKeys.Control } },
                 { "OpenSaveFolder", new KeyboardShortcut { Key = Key.F5, Modifiers = ModifierKeys.Control } }
             };
+        }
+
+        // 저장된 영역을 Rectangle로 반환하는 메서드
+        public System.Drawing.Rectangle? GetSavedRegion()
+        {
+            if (SavedRegionX.HasValue && SavedRegionY.HasValue && 
+                SavedRegionWidth.HasValue && SavedRegionHeight.HasValue)
+            {
+                return new System.Drawing.Rectangle(
+                    SavedRegionX.Value, 
+                    SavedRegionY.Value, 
+                    SavedRegionWidth.Value, 
+                    SavedRegionHeight.Value);
+            }
+            return null;
+        }
+
+        // 영역을 저장하는 메서드
+        public void SetSavedRegion(System.Drawing.Rectangle region)
+        {
+            SavedRegionX = region.X;
+            SavedRegionY = region.Y;
+            SavedRegionWidth = region.Width;
+            SavedRegionHeight = region.Height;
+        }
+
+        // 저장된 영역을 초기화하는 메서드
+        public void ClearSavedRegion()
+        {
+            SavedRegionX = null;
+            SavedRegionY = null;
+            SavedRegionWidth = null;
+            SavedRegionHeight = null;
         }
     }
 
@@ -221,7 +268,7 @@ namespace MyCap.Services
         {
             var requiredShortcuts = new[] 
             { 
-                "FullScreen", "RegionSelect", "WindowCapture", 
+                "FullScreen", "RegionSelect", "WindowCapture", "SameRegionCapture",
                 "SaveAs", "Copy", "About", "CloseDialog", "ExitApplication", "OpenSaveFolder" 
             };
 

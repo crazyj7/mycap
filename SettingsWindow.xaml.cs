@@ -22,6 +22,7 @@ namespace MyCap.Windows
             { "RegionSelect", "영역 캡처" },
             { "FullScreen", "전체 화면 캡처" },
             { "WindowCapture", "창 캡처" },
+            { "SameRegionCapture", "동일 영역 캡처" },
             { "SaveAs", "다른 이름으로 저장" },
             { "About", "정보" },
             { "CloseDialog", "대화상자 닫기" },
@@ -48,6 +49,15 @@ namespace MyCap.Windows
             SaveLocationTextBox.Text = _settingsService.Settings.SaveDirectory;
             QuietModeCheckBox.IsChecked = _settingsService.Settings.QuietMode;
             AutoStartCheckBox.IsChecked = _settingsService.Settings.AutoStart;
+
+            // 체크박스 상태 변경 이벤트 핸들러 추가
+            QuietModeCheckBox.Checked += (s, e) => SaveQuietModeSetting();
+            QuietModeCheckBox.Unchecked += (s, e) => SaveQuietModeSetting();
+            AutoStartCheckBox.Checked += (s, e) => SaveAutoStartSetting();
+            AutoStartCheckBox.Unchecked += (s, e) => SaveAutoStartSetting();
+
+            // 저장된 영역 정보 표시
+            UpdateSavedRegionDisplay();
 
             // 현재 자동 실행 상태 확인
             using (var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey))
@@ -115,8 +125,13 @@ namespace MyCap.Windows
                 modifiers |= ModifierKeys.Shift;
 
             // Update the shortcut
-            hotkeyItem.Shortcut = new KeyboardShortcut(e.Key, modifiers);
+            var newShortcut = new KeyboardShortcut(e.Key, modifiers);
+            System.Diagnostics.Debug.WriteLine($"Updating shortcut for {shortcutName}: {newShortcut}");
+            hotkeyItem.Shortcut = newShortcut;
             hotkeyItem.UpdateShortcutText();
+            
+            // 즉시 설정에 반영
+            _settingsService.Settings.Shortcuts[shortcutName] = newShortcut;
 
             // 단축키 입력이 완료되면 다음 컨트롤로 포커스 이동
             textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
@@ -184,26 +199,22 @@ namespace MyCap.Windows
         {
             try
             {
-                // Update settings with new shortcuts
-                foreach (var item in _hotkeyItems)
-                {
-                    _settingsService.Settings.Shortcuts[item.CommandName] = item.Shortcut;
-                }
-
-                // Update save location and other settings
+                // Update save location
                 _settingsService.Settings.SaveDirectory = SaveLocationTextBox.Text;
-                _settingsService.Settings.QuietMode = QuietModeCheckBox.IsChecked ?? false;
-                _settingsService.Settings.AutoStart = AutoStartCheckBox.IsChecked ?? true;
 
-                // Update auto start registry
-                UpdateAutoStart(AutoStartCheckBox.IsChecked ?? true);
+                // QuietMode and AutoStart are already saved in real-time, so we don't need to save them again
+                // Shortcuts are also saved in real-time when changed
 
+                System.Diagnostics.Debug.WriteLine("Saving settings...");
                 _settingsService.SaveSettings();
+                System.Diagnostics.Debug.WriteLine("Settings saved successfully");
+                
                 DialogResult = true;
                 Close();
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
                 MessageBox.Show($"설정 저장 중 오류가 발생했습니다: {ex.Message}", 
                               "오류", 
                               MessageBoxButton.OK, 
@@ -223,6 +234,77 @@ namespace MyCap.Windows
             {
                 DialogResult = false;
                 Close();
+            }
+        }
+
+        private void SaveQuietModeSetting()
+        {
+            try
+            {
+                _settingsService.Settings.QuietMode = QuietModeCheckBox.IsChecked ?? false;
+                _settingsService.SaveSettings();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving quiet mode setting: {ex.Message}");
+            }
+        }
+
+        private void SaveAutoStartSetting()
+        {
+            try
+            {
+                var isChecked = AutoStartCheckBox.IsChecked ?? false;
+                _settingsService.Settings.AutoStart = isChecked;
+                UpdateAutoStart(isChecked);
+                _settingsService.SaveSettings();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving auto start setting: {ex.Message}");
+            }
+        }
+
+        private void UpdateSavedRegionDisplay()
+        {
+            try
+            {
+                var savedRegion = _settingsService.Settings.GetSavedRegion();
+                if (savedRegion.HasValue)
+                {
+                    SavedRegionText.Text = $"X:{savedRegion.Value.X}, Y:{savedRegion.Value.Y}, W:{savedRegion.Value.Width}, H:{savedRegion.Value.Height}";
+                }
+                else
+                {
+                    SavedRegionText.Text = "없음";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating saved region display: {ex.Message}");
+                SavedRegionText.Text = "오류";
+            }
+        }
+
+        private void ClearSavedRegionButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (MessageBox.Show(
+                    "저장된 영역을 초기화하시겠습니까?",
+                    "영역 초기화",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    _settingsService.Settings.ClearSavedRegion();
+                    _settingsService.SaveSettings();
+                    UpdateSavedRegionDisplay();
+                    MessageBox.Show("저장된 영역이 초기화되었습니다.", "초기화 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"영역 초기화 중 오류가 발생했습니다: {ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
@@ -251,7 +333,7 @@ namespace MyCap.Windows
             CommandName = commandName;
             Shortcut = shortcut;
             // 화면 캡처 관련 단축키와 저장폴더 열기는 글로벌 단축키로 설정
-            IsGlobal = commandName is "RegionSelect" or "FullScreen" or "WindowCapture" or "OpenSaveFolder";
+            IsGlobal = commandName is "RegionSelect" or "FullScreen" or "WindowCapture" or "SameRegionCapture" or "OpenSaveFolder";
             UpdateShortcutText();
         }
 
